@@ -71,7 +71,7 @@ function formatDetailsAsText(record) {
     ``,
     `Registration ID  : ${record.id}`,
     `Full Name        : ${record.name}`,
-    `User / Roll No   : ${record.userId}`,
+    `Enrollment No.   : ${record.userId}`,
     `Email            : ${record.email}`,
     `Department       : ${record.department}`,
     `Role             : ${record.role}`,
@@ -88,10 +88,8 @@ function formatDetailsAsText(record) {
     `Registered At    : ${record.registeredAt}`,
     `Training Status  : ${record.trainingStatus}`,
     ``,
-    `--- Storage Destination ---`,
-    `Dedicated Folder : ${record.folderName}`,
-    `Drive Video Link : ${record.driveVideoLink || 'Local Storage'}`,
-    `Drive Folder Link: ${record.driveFolderLink || 'Local Storage'}`,
+    `--- Profile Record ---`,
+    `Record Folder    : ${record.folderName}`,
     ``,
     `========================================`,
   ];
@@ -172,12 +170,26 @@ app.post('/api/register', upload.single('video'), async (req, res) => {
     if (!name || !userId) {
       return res.status(400).json({
         success: false,
-        error: 'Name and User/Student ID are required.',
+        error: 'Name and enrollment number are required.',
       });
     }
 
+    const enrollmentSuffix = userId.toString().trim()
+      .replace(/^CSJMA/i, '')
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .toUpperCase();
+
+    if (!enrollmentSuffix) {
+      return res.status(400).json({
+        success: false,
+        error: 'A valid enrollment number is required.',
+      });
+    }
+
+    const formattedEnrollmentNo = `CSJMA${enrollmentSuffix}`;
+
     // Sanitize user identifiers
-    const safeUserId = userId.toString().trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+    const safeUserId = formattedEnrollmentNo.replace(/[^a-zA-Z0-9_-]/g, '_');
     const safeName = name.trim().replace(/[^a-zA-Z0-9]/g, '_');
     const timestamp = Date.now();
     const ext = file.originalname?.split('.').pop() || 'webm';
@@ -191,7 +203,7 @@ app.post('/api/register', upload.single('video'), async (req, res) => {
       id: `${safeUserId}_${timestamp}`,
       name: name.trim(),
       email: (email || '').trim(),
-      userId: userId.trim(),
+      userId: formattedEnrollmentNo,
       department: (department || 'General').trim(),
       role: (role || 'Student').trim(),
       notes: (notes || '').trim(),
@@ -259,13 +271,11 @@ app.post('/api/register', upload.single('video'), async (req, res) => {
     all.push(record);
     saveRegistrations(all);
 
-    console.log(`[AttendAI] Registered: ${name} [${userId}] in separate folder "${userFolderName}"`);
+    console.log(`[AttendAI] Registered: ${name} [${formattedEnrollmentNo}] in separate folder "${userFolderName}"`);
 
     return res.status(201).json({
       success: true,
-      message: record.storageMode === 'google_drive'
-        ? `Uploaded to separate Google Drive folder "${userFolderName}"!`
-        : `Saved locally in separate folder "${userFolderName}"!`,
+      message: 'Registration saved successfully.',
       data: record,
     });
   } catch (err) {
