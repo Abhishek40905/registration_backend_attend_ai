@@ -72,9 +72,11 @@ function formatDetailsAsText(record) {
     `Registration ID  : ${record.id}`,
     `Full Name        : ${record.name}`,
     `Enrollment No.   : ${record.userId}`,
-    `Email            : ${record.email}`,
     `Department       : ${record.department}`,
-    `Role             : ${record.role}`,
+    `Year             : ${record.year || '1st Year'}`,
+    `Gender           : ${record.gender || 'Male'}`,
+    `Role             : ${record.role || 'Student'}`,
+    `Email            : ${record.email}`,
     `Notes / Tags     : ${record.notes || 'None'}`,
     ``,
     `--- Video Specifications ---`,
@@ -157,7 +159,7 @@ app.get('/api/health', (req, res) => {
 // Registration Endpoint
 app.post('/api/register', upload.single('video'), async (req, res) => {
   try {
-    const { name, email, userId, department, role, notes, duration } = req.body;
+    const { name, email, userId, department, year, gender, role, notes, duration } = req.body;
     const file = req.file;
 
     if (!file) {
@@ -204,7 +206,9 @@ app.post('/api/register', upload.single('video'), async (req, res) => {
       name: name.trim(),
       email: (email || '').trim(),
       userId: formattedEnrollmentNo,
-      department: (department || 'General').trim(),
+      department: (department || 'CSE').trim(),
+      year: (year || '1st Year').trim(),
+      gender: (gender || 'Male').trim(),
       role: (role || 'Student').trim(),
       notes: (notes || '').trim(),
       folderName: userFolderName,
