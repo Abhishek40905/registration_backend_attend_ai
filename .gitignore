@@ -1,0 +1,11 @@
+node_modules/
+.env
+.env.local
+.env.*.local
+tmp_uploads/
+*.log
+
+# Ignore private service account keys but keep package.json / package-lock.json
+*gserviceaccount*.json
+*credentials*.json
+*service_account*.json

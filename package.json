@@ -1,0 +1,22 @@
+{
+  "name": "attend-ai-server",
+  "version": "1.0.0",
+  "description": "AttendAI backend - stores face scan videos + details to Google Drive",
+  "main": "server.js",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.1",
+    "googleapis": "^144.0.0",
+    "multer": "^1.4.5-lts.1",
+    "dotenv": "^16.4.5",
+    "stream": "*"
+  }
+}
