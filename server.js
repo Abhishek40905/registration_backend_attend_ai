@@ -23,8 +23,8 @@ if (!fs.existsSync(STORAGE_DIR)) {
   fs.mkdirSync(STORAGE_DIR, { recursive: true });
 }
 
-// CORS: allow all origins
-app.use(cors());
+// CORS: allow cross-origin requests from Vercel and any client
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -98,14 +98,62 @@ function formatDetailsAsText(record) {
   return lines.join('\n');
 }
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    googleDriveConfigured: isDriveConfigured(),
-    folderId: process.env.GOOGLE_DRIVE_FOLDER_ID || null,
+// Production-grade Health Check handler
+const getHealthStatus = () => {
+  const mem = process.memoryUsage();
+  const uptimeSec = Math.floor(process.uptime());
+  const hours = Math.floor(uptimeSec / 3600);
+  const minutes = Math.floor((uptimeSec % 3600) / 60);
+  const seconds = uptimeSec % 60;
+
+  let driveMethod = 'Local Storage Only';
+  if (process.env.GOOGLE_APPS_SCRIPT_URL) {
+    driveMethod = 'Google Apps Script Bridge (Personal @gmail.com)';
+  } else if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REFRESH_TOKEN) {
+    driveMethod = 'Google Drive OAuth 2.0';
+  } else if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL) {
+    driveMethod = 'Service Account';
+  }
+
+  const registrations = getRegistrations();
+
+  return {
+    status: 'healthy',
+    uptime: `${hours}h ${minutes}m ${seconds}s`,
+    uptimeSeconds: uptimeSec,
     timestamp: new Date().toISOString(),
-  });
+    service: 'AttendAI Backend Service',
+    environment: process.env.NODE_ENV || 'development',
+    system: {
+      nodeVersion: process.version,
+      platform: process.platform,
+      memory: {
+        heapUsedMB: (mem.heapUsed / 1024 / 1024).toFixed(2),
+        heapTotalMB: (mem.heapTotal / 1024 / 1024).toFixed(2),
+        rssMB: (mem.rss / 1024 / 1024).toFixed(2),
+      },
+    },
+    googleDrive: {
+      configured: isDriveConfigured(),
+      storageMethod: driveMethod,
+      folderId: process.env.GOOGLE_DRIVE_FOLDER_ID || null,
+      appsScriptConfigured: !!process.env.GOOGLE_APPS_SCRIPT_URL,
+    },
+    dataset: {
+      totalRegistrations: registrations.length,
+      storageDirectory: STORAGE_DIR,
+      storageMode: 'individual_user_folders',
+    },
+  };
+};
+
+// Health check endpoints for Render, uptime monitors, and frontend
+app.get('/health', (req, res) => {
+  res.status(200).json(getHealthStatus());
+});
+
+app.get('/api/health', (req, res) => {
+  res.status(200).json(getHealthStatus());
 });
 
 // Registration Endpoint
