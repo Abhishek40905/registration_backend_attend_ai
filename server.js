@@ -71,7 +71,8 @@ function formatDetailsAsText(record) {
     ``,
     `Registration ID  : ${record.id}`,
     `Full Name        : ${record.name}`,
-    `Enrollment No.   : ${record.userId}`,
+    `Enrollment No.   : ${record.enrollmentNo || record.userId}`,
+    `Roll No.         : ${record.rollNo || 'N/A'}`,
     `Department       : ${record.department}`,
     `Year             : ${record.year || '1st Year'}`,
     `Gender           : ${record.gender || 'Male'}`,
@@ -159,7 +160,7 @@ app.get('/api/health', (req, res) => {
 // Registration Endpoint
 app.post('/api/register', upload.single('video'), async (req, res) => {
   try {
-    const { name, email, userId, department, year, gender, role, notes, duration } = req.body;
+    const { name, email, userId, enrollmentNo, rollNo, department, year, gender, role, notes, duration } = req.body;
     const file = req.file;
 
     if (!file) {
@@ -169,14 +170,15 @@ app.post('/api/register', upload.single('video'), async (req, res) => {
       });
     }
 
-    if (!name || !userId) {
+    const rawEnrollment = (enrollmentNo || userId || '').toString().trim();
+    if (!name || !rawEnrollment) {
       return res.status(400).json({
         success: false,
         error: 'Name and enrollment number are required.',
       });
     }
 
-    const enrollmentSuffix = userId.toString().trim()
+    const enrollmentSuffix = rawEnrollment
       .replace(/^CSJMA/i, '')
       .replace(/[^a-zA-Z0-9]/g, '')
       .toUpperCase();
@@ -189,6 +191,18 @@ app.post('/api/register', upload.single('video'), async (req, res) => {
     }
 
     const formattedEnrollmentNo = `CSJMA${enrollmentSuffix}`;
+
+    // Format Roll No. with CSJMA style as well
+    let formattedRollNo = '';
+    if (rollNo) {
+      const rollSuffix = rollNo.toString().trim()
+        .replace(/^CSJMA/i, '')
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .toUpperCase();
+      if (rollSuffix) {
+        formattedRollNo = `CSJMA${rollSuffix}`;
+      }
+    }
 
     // Sanitize user identifiers
     const safeUserId = formattedEnrollmentNo.replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -206,6 +220,8 @@ app.post('/api/register', upload.single('video'), async (req, res) => {
       name: name.trim(),
       email: (email || '').trim(),
       userId: formattedEnrollmentNo,
+      enrollmentNo: formattedEnrollmentNo,
+      rollNo: formattedRollNo || 'N/A',
       department: (department || 'CSE').trim(),
       year: (year || '1st Year').trim(),
       gender: (gender || 'Male').trim(),
